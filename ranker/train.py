@@ -1,4 +1,4 @@
-"""Train a LightGBM LambdaMART ranker on the labelled pairs."""
+"""Train LightGBM LambdaMART rankers on the labelled pairs."""
 
 import sys
 from pathlib import Path
@@ -9,7 +9,9 @@ from ranker.data import load_examples
 from ranker.features import build
 from ranker.metrics import GAIN, mean_ndcg
 
-MODEL = Path("artifacts/lgbm.txt")
+# light skips the cross-encoder, so serving can afford it on every retrieved candidate.
+# full adds it and only reranks light's top few. Feature importance is printed for full.
+MODELS = {"light": Path("artifacts/lgbm_light.txt"), "full": Path("artifacts/lgbm.txt")}
 LABEL = {"I": 0, "C": 1, "S": 2, "E": 3}
 PARAMS = {
     "objective": "lambdarank",
@@ -41,23 +43,23 @@ def dataset(e, f, split):
 
 def train():
     e, f = load()
-    train_set = dataset(e, f, "train")
-    valid_set = dataset(e, f, "valid")
-    model = lgb.train(
-        PARAMS, train_set, num_boost_round=3000, valid_sets=[valid_set],
-        callbacks=[lgb.early_stopping(100), lgb.log_evaluation(100)],
-    )
-    model.save_model(MODEL, num_iteration=model.best_iteration)
-    print(f"valid bm25 only ndcg@10={mean_ndcg(e, f.bm25.to_numpy(), 'valid'):.4f}")
-    print(f"valid lgbm      ndcg@10={mean_ndcg(e, model.predict(f), 'valid'):.4f}")
+    for name, path in MODELS.items():
+        cols = [c for c in f.columns if name == "full" or c != "ce"]
+        model = lgb.train(
+            PARAMS, dataset(e, f[cols], "train"), num_boost_round=3000,
+            valid_sets=[dataset(e, f[cols], "valid")], callbacks=[lgb.early_stopping(100, verbose=False)],
+        )
+        model.save_model(path, num_iteration=model.best_iteration)
+        print(f"valid {name} ndcg@10={mean_ndcg(e, model.predict(f[cols]), 'valid'):.4f}")
 
 
 def evaluate(split):
     e, f = load()
-    model = lgb.Booster(model_file=MODEL)
     print(f"{split} bm25 only ndcg@10={mean_ndcg(e, f.bm25.to_numpy(), split):.4f}")
-    # LightGBM matches features by position, so select them by the model's own names.
-    print(f"{split} lgbm      ndcg@10={mean_ndcg(e, model.predict(f[model.feature_name()]), split):.4f}")
+    for name, path in MODELS.items():
+        model = lgb.Booster(model_file=path)
+        # LightGBM matches features by position, so select them by the model's own names.
+        print(f"{split} {name} ndcg@10={mean_ndcg(e, model.predict(f[model.feature_name()]), split):.4f}")
     gain = model.feature_importance("gain")
     for name, g in sorted(zip(model.feature_name(), gain / gain.sum()), key=lambda x: -x[1]):
         print(f"  {name:16s} {g:.1%}")
