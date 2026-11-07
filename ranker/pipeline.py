@@ -7,7 +7,9 @@ import lightgbm as lgb
 import numpy as np
 
 from ranker import cross, dense
+from ranker.data import load_examples
 from ranker.features import Featurizer
+from ranker.metrics import ndcg
 from ranker.retrieve import Retriever, rrf
 from ranker.train import MODELS
 
@@ -57,7 +59,32 @@ class Searcher:
         return results, ms
 
 
+def evaluate(split):
+    """NDCG@10 of the top 10 from the whole catalog, not just the labelled products.
+    Unlabelled products count as gain 0, so this is a lower bound."""
+    e = load_examples()
+    e = e[e.split == split]
+    gain = dict(zip(zip(e["query"], e.product_id), e.gain))
+    ideal = e.groupby("query").gain.apply(list)
+    s = Searcher()
+    out = {"bm25": [], "hybrid": [], "pipeline": []}
+    for q in ideal.index:
+        b, d = s.retriever.lists([q], 200)[q]
+        ranked = {
+            "bm25": s.ids[b[:10]],
+            "hybrid": s.ids[rrf((b, d), 10)],
+            "pipeline": [r["product_id"] for r in s.search(q)[0]],
+        }
+        for name, ids in ranked.items():
+            out[name].append(ndcg([gain.get((q, pid), 0.0) for pid in ids], ideal[q]))
+    for name, v in out.items():
+        print(f"{split} end-to-end {name} ndcg@10={np.mean(v):.4f}")
+
+
 if __name__ == "__main__":
+    if len(sys.argv) > 1 and sys.argv[1] in ("valid", "test"):
+        evaluate(sys.argv[1])
+        sys.exit()
     s = Searcher()
     query = sys.argv[1] if len(sys.argv) > 1 else "80 cfm quiet bathroom exhaust fan"
     s.search(query)
