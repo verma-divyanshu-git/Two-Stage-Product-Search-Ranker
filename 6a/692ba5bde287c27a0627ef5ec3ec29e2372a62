@@ -1,0 +1,19 @@
+ranker/dense.py
+  s_063379ee7f4903::t_bdde0c5f1a545b 1-45
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6a692ba5bde287c27a0627ef5ec3ec29e2372a62",
+  "prompts": {},
+  "sessions": {
+    "s_063379ee7f4903": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "aaf39566-a2e0-461d-bfbd-9009c20211a5",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Divyanshu <bautocrats@gmail.com>"
+    }
+  }
+}
