@@ -13,6 +13,7 @@ from ranker.data import load_examples, load_products
 from ranker.metrics import mean_ndcg
 
 ZERO_SHOT = "cross-encoder/ms-marco-MiniLM-L6-v2"
+FINETUNED = "artifacts/ce-esci"
 DEVICE = "mps" if torch.backends.mps.is_available() else "cpu"
 
 

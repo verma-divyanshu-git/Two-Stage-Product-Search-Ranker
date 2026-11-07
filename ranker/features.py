@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 
 from ranker.bm25 import STEM, load_index, pair_scores
-from ranker.cross import scores_for
+from ranker.cross import FINETUNED, scores_for
 from ranker.data import load_examples, load_products
 from ranker.dense import encode, load_model, product_embeddings
 
@@ -42,7 +42,7 @@ def build(e, p):
     f["bm25"] = pair_scores(load_index(), queries, rows)
     qv = dict(zip(uq, encode(load_model(), list(uq))))
     f["cosine"] = np.einsum("ij,ij->i", np.stack([qv[q] for q in queries]), product_embeddings()[rows])
-    f["ce"] = scores_for(e)
+    f["ce"] = scores_for(e, FINETUNED)
     f["q_len"] = [len(t) for t in qt]
     f["title_len"] = [len(t) for t in title]
     f["title_overlap"] = [overlap(q, t) for q, t in zip(qt, title)]
