@@ -10,6 +10,7 @@ import torch
 from sentence_transformers import CrossEncoder
 
 from ranker.data import load_examples, load_products
+from ranker.metrics import mean_ndcg
 
 ZERO_SHOT = "cross-encoder/ms-marco-MiniLM-L6-v2"
 DEVICE = "mps" if torch.backends.mps.is_available() else "cpu"
@@ -39,8 +40,15 @@ def example_scores(name=ZERO_SHOT):
     return e
 
 
+def scores_for(e, name=ZERO_SHOT):
+    """Cached cross-encoder score for each row of e."""
+    return e[["query", "product_id"]].merge(example_scores(name), how="left").ce.to_numpy()
+
+
 if __name__ == "__main__":
     name = sys.argv[1] if len(sys.argv) > 1 else ZERO_SHOT
-    s = example_scores(name)
-    print(s.ce.describe().round(3))
-    assert s.ce.notna().all() and len(s) == len(load_examples())
+    e = load_examples()
+    s = scores_for(e, name)
+    assert len(s) == len(e) and not np.isnan(s).any()
+    for split in ("valid", "test"):
+        print(f"{split} {Path(name).name} alone ndcg@10={mean_ndcg(e, s, split):.4f}")
