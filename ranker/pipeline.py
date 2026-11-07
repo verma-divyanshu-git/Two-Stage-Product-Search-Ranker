@@ -53,9 +53,12 @@ class Searcher:
         f = f.iloc[top].assign(ce=cross.score(self.ce, [query] * len(top), self.titles[cands[top]], batch_size=rerank))
         lap("cross")
         full = self.full.predict(f[self.full.feature_name()])
-        best = top[np.argsort(-full, kind="stable")][:k]
+        order = np.argsort(-full, kind="stable")[:k]
         lap("full")
-        results = [{"product_id": self.ids[r], "title": self.titles[r]} for r in cands[best]]
+        results = [
+            {"product_id": self.ids[r], "title": self.titles[r], "score": round(float(sc), 4)}
+            for r, sc in zip(cands[top[order]], full[order])
+        ]
         return results, ms
 
 
