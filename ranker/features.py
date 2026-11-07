@@ -6,7 +6,7 @@ import bm25s
 import numpy as np
 import pandas as pd
 
-from ranker.bm25 import STEM
+from ranker.bm25 import STEM, load_index, pair_scores
 from ranker.data import load_examples, load_products
 
 NUM = re.compile(r"\d+(?:\.\d+)?")
@@ -23,6 +23,7 @@ def overlap(a, b):
 
 def build(e, p):
     """One feature row per row of e. p is the product catalog from load_products()."""
+    rows = pd.Index(p.product_id).get_indexer(e.product_id)
     p = p.set_index("product_id").loc[e.product_id].fillna("")
     queries = e["query"].to_numpy()
     uq = pd.unique(queries)
@@ -36,6 +37,7 @@ def build(e, p):
 
     qt = [q_tok[q] for q in queries]
     f = pd.DataFrame(index=e.index)
+    f["bm25"] = pair_scores(load_index(), queries, rows)
     f["q_len"] = [len(t) for t in qt]
     f["title_len"] = [len(t) for t in title]
     f["title_overlap"] = [overlap(q, t) for q, t in zip(qt, title)]
