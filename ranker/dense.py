@@ -1,9 +1,11 @@
 """Bi-encoder embeddings: queries and products become vectors, similar meaning means close vectors."""
 
 import sys
+import time
 from functools import partial
 from pathlib import Path
 
+import hnswlib
 import numpy as np
 import torch
 from sentence_transformers import SentenceTransformer
@@ -13,6 +15,7 @@ from ranker.metrics import mean_recall
 
 MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
 EMB = Path("artifacts/product_emb.npy")
+HNSW = Path("artifacts/hnsw.bin")
 DEVICE = "mps" if torch.backends.mps.is_available() else "cpu"
 
 
@@ -54,6 +57,24 @@ def exact_knn(v, qv, k, chunk=512):
     return np.vstack(out)
 
 
+def hnsw_index(v):
+    """Approximate search over a neighbour graph. Built once, then saved."""
+    index = hnswlib.Index(space="ip", dim=v.shape[1])
+    if HNSW.exists():
+        index.load_index(str(HNSW), max_elements=len(v))
+    else:
+        index.init_index(max_elements=len(v), M=32, ef_construction=200)
+        index.add_items(v, np.arange(len(v)))
+        index.save_index(str(HNSW))
+    # Candidates explored per query. Must be at least k, higher trades speed for recall.
+    index.set_ef(300)
+    return index
+
+
+def hnsw_knn(index, qv, k):
+    return index.knn_query(qv, k=k)[0].astype(np.int64)
+
+
 def search(knn, model, queries, k):
     """query -> top k product rows, best first. knn(query_vectors, k) does the lookup."""
     return dict(zip(queries, knn(encode(model, list(queries)), k)))
@@ -64,8 +85,13 @@ def evaluate(split, k=100):
     e = e[e.split == split]
     pos = {pid: i for i, pid in enumerate(load_products().product_id)}
     v = product_embeddings()
-    hits = search(partial(exact_knn, v), load_model(), e["query"].unique(), k)
-    print(f"{split}: dense recall@{k}(E)={mean_recall(e, hits, pos, k):.4f}")
+    model = load_model()
+    queries = e["query"].unique()
+    for name, knn in [("exact", partial(exact_knn, v)), ("hnsw", partial(hnsw_knn, hnsw_index(v)))]:
+        t = time.perf_counter()
+        hits = search(knn, model, queries, k)
+        ms = (time.perf_counter() - t) * 1000 / len(queries)
+        print(f"{split}: dense {name} recall@{k}(E)={mean_recall(e, hits, pos, k):.4f} {ms:.2f} ms/query")
 
 
 def check():
