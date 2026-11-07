@@ -1,0 +1,21 @@
+ranker/data.py
+  s_063379ee7f4903::t_a1ccc1ba1a03e7 1-44
+uv.lock
+  s_063379ee7f4903::t_d9be9e7029c21c 1-205
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6b110a401a1be214a6275b9666d2fba8beb8d652",
+  "prompts": {},
+  "sessions": {
+    "s_063379ee7f4903": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "aaf39566-a2e0-461d-bfbd-9009c20211a5",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Divyanshu <bautocrats@gmail.com>"
+    }
+  }
+}
