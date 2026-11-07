@@ -1,0 +1,26 @@
+ranker/dense.py
+  s_063379ee7f4903::t_d628bbd789138e 4,8
+  s_063379ee7f4903::t_288cec1338a589 60-77
+  s_063379ee7f4903::t_1396169d375d0f 88-94
+  s_063379ee7f4903::t_32f919f2bd49da 18
+pyproject.toml
+  s_063379ee7f4903::t_d2957c50617e25 7
+uv.lock
+  s_063379ee7f4903::t_f637889ce1258d 199-207,1304,1316
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ec429fbfc8806215d0e4ae939e9d1b3777b51984",
+  "prompts": {},
+  "sessions": {
+    "s_063379ee7f4903": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "aaf39566-a2e0-461d-bfbd-9009c20211a5",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Divyanshu <bautocrats@gmail.com>"
+    }
+  }
+}
