@@ -14,10 +14,13 @@ class Retriever:
         self.model = dense.load_model()
         self.hnsw = dense.hnsw_index(dense.product_embeddings())
 
-    def lists(self, queries, depth):
-        """query -> (BM25 top rows, dense top rows), each `depth` long."""
-        hits = dense.search(lambda qv, k: dense.hnsw_knn(self.hnsw, qv, k), self.model, queries, depth)
-        return {q: (bm25.top_rows(bm25.scores(self.bm25, q), depth), hits[q]) for q in queries}
+    def lists(self, queries, depth, qv=None):
+        """query -> (BM25 top rows, dense top rows), each `depth` long.
+        qv: query embeddings, if the caller already has them."""
+        if qv is None:
+            qv = dense.encode(self.model, list(queries))
+        hits = dense.hnsw_knn(self.hnsw, qv, depth)
+        return {q: (bm25.top_rows(bm25.scores(self.bm25, q), depth), h) for q, h in zip(queries, hits)}
 
     def __call__(self, queries, n, depth=200):
         """query -> top n product rows after fusion."""
