@@ -23,6 +23,12 @@ def tokens(query):
     return bm25s.tokenize(query, stemmer=STEM, return_ids=False, show_progress=False)[0]
 
 
+def scores(r, query):
+    """BM25 score of every product. Queries like "it" or "$1" have no tokens left."""
+    t = tokens(query)
+    return r.get_scores(t) if t else np.zeros(r.scores["num_docs"], dtype=np.float32)
+
+
 def load_index():
     """BM25 index whose doc i is row i of load_products()."""
     if INDEX.exists():
@@ -44,7 +50,7 @@ def evaluate(split, k=100):
     # GLOBAL SYSTEM INSTRUCTIONS BY DIV: scores the full catalog per query, ~80 ms each.
     # Fine for offline eval; batch retrieve() is the upgrade if this becomes a bottleneck.
     for q, g in e.groupby("query"):
-        s = r.get_scores(tokens(q))
+        s = scores(r, q)
         idx = g.product_id.map(pos).to_numpy()
         order = np.argsort(-s[idx], kind="stable")
         nd.append(ndcg(g.gain.to_numpy()[order].tolist(), g.gain.tolist()))
