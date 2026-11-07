@@ -64,11 +64,10 @@ def evaluate(split, k=100):
     pos = {pid: i for i, pid in enumerate(load_products().product_id)}
     r = load_index()
     nd, rc = [], []
-    # GLOBAL SYSTEM INSTRUCTIONS BY DIV: scores the full catalog per query, ~80 ms each.
-    # Fine for offline eval; batch retrieve() is the upgrade if this becomes a bottleneck.
+    e = e.assign(row=e.product_id.map(pos))
     for q, g in e.groupby("query"):
         s = scores(r, q)
-        idx = g.product_id.map(pos).to_numpy()
+        idx = g.row.to_numpy()
         order = np.argsort(-s[idx], kind="stable")
         nd.append(ndcg(g.gain.to_numpy()[order].tolist(), g.gain.tolist()))
         exact = idx[g.esci_label.to_numpy() == "E"]

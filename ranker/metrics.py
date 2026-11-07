@@ -25,11 +25,8 @@ def recall(retrieved, relevant, k):
 def mean_recall(e, retrieved, pos, k):
     """e: labelled pairs. retrieved: query -> ranked product rows. pos: product_id -> row.
     Queries with no Exact product are skipped."""
-    out = []
-    for q, g in e.groupby("query"):
-        exact = g.product_id[g.esci_label == "E"].map(pos).tolist()
-        if exact:
-            out.append(recall(list(retrieved[q]), exact, k))
+    e = e[e.esci_label == "E"]
+    out = [recall(list(retrieved[q]), exact.tolist(), k) for q, exact in e.product_id.map(pos).groupby(e["query"])]
     return sum(out) / len(out)
 
 
