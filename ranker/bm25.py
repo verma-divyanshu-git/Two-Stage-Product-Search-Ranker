@@ -31,6 +31,12 @@ def scores(r, query):
     return r.get_scores(t) if t else np.zeros(r.scores["num_docs"], dtype=np.float32)
 
 
+def top_rows(s, k):
+    """Indices of the k highest scores, best first."""
+    top = np.argpartition(-s, k)[:k]
+    return top[np.argsort(-s[top], kind="stable")]
+
+
 def pair_scores(r, queries, rows):
     """BM25 score of product row rows[i] for queries[i], read straight from the
     index matrix. Much faster than scoring the whole catalog for each query."""
@@ -72,8 +78,7 @@ def evaluate(split, k=100):
         nd.append(ndcg(g.gain.to_numpy()[order].tolist(), g.gain.tolist()))
         exact = idx[g.esci_label.to_numpy() == "E"]
         if len(exact):
-            top = np.argpartition(-s, k)[:k]
-            rc.append(recall(top.tolist(), exact.tolist(), k))
+            rc.append(recall(top_rows(s, k).tolist(), exact.tolist(), k))
     print(f"{split}: ndcg@10={np.mean(nd):.4f} recall@{k}(E)={np.mean(rc):.4f} queries={len(nd)}")
 
 
@@ -84,6 +89,8 @@ def check():
     for q in queries:
         fast = pair_scores(r, np.array([q] * len(rows)), rows)
         assert np.allclose(fast, scores(r, q)[rows], atol=1e-4), q
+    s = np.array([0.1, 0.9, 0.5, 0.7])
+    assert top_rows(s, 2).tolist() == [1, 3]
     print("ok")
 
 
