@@ -68,6 +68,9 @@ def evaluate(split):
     model = lgb.Booster(model_file=MODEL)
     print(f"{split} bm25 only ndcg@10={mean_ndcg(e, f.bm25.to_numpy(), split):.4f}")
     print(f"{split} lgbm      ndcg@10={mean_ndcg(e, model.predict(f), split):.4f}")
+    gain = model.feature_importance("gain")
+    for name, g in sorted(zip(model.feature_name(), gain / gain.sum()), key=lambda x: -x[1]):
+        print(f"  {name:16s} {g:.1%}")
 
 
 if __name__ == "__main__":
