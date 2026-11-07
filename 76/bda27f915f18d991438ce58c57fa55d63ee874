@@ -1,0 +1,23 @@
+ranker/features.py
+  s_063379ee7f4903::t_99655799c0c819 1,26-71,78
+ranker/train.py
+  s_063379ee7f4903::t_e5d700d52f2554 8
+  s_063379ee7f4903::t_55122441d038b1 33
+  s_063379ee7f4903::t_1cccc2f4d91d1f 59-60
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "76bda27f915f18d991438ce58c57fa55d63ee874",
+  "prompts": {},
+  "sessions": {
+    "s_063379ee7f4903": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "aaf39566-a2e0-461d-bfbd-9009c20211a5",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Divyanshu <bautocrats@gmail.com>"
+    }
+  }
+}
