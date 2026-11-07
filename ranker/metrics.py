@@ -22,6 +22,18 @@ def recall(retrieved, relevant, k):
     return len(set(retrieved[:k]) & set(relevant)) / len(relevant)
 
 
+def mean_ndcg(e, score, split, k=10):
+    """Mean NDCG@k over the split's queries when each query's labelled products are
+    sorted by score. LightGBM's built-in NDCG counts all-Irrelevant queries as 1.0, this counts them as 0."""
+    m = (e.split == split).to_numpy()
+    s = e[m].assign(score=score[m])
+    out = [
+        ndcg(g.sort_values("score", ascending=False, kind="stable").gain.tolist(), g.gain.tolist(), k)
+        for _, g in s.groupby("query_id")
+    ]
+    return sum(out) / len(out)
+
+
 def mean_recall(e, retrieved, pos, k):
     """e: labelled pairs. retrieved: query -> ranked product rows. pos: product_id -> row.
     Queries with no Exact product are skipped."""

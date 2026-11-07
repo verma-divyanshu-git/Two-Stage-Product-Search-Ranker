@@ -4,11 +4,10 @@ import sys
 from pathlib import Path
 
 import lightgbm as lgb
-import numpy as np
 
 from ranker.data import load_examples, load_products
 from ranker.features import build
-from ranker.metrics import GAIN, ndcg
+from ranker.metrics import GAIN, mean_ndcg
 
 MODEL = Path("artifacts/lgbm.txt")
 LABEL = {"I": 0, "C": 1, "S": 2, "E": 3}
@@ -38,16 +37,6 @@ def dataset(e, f, split):
     m = (e.split == split).to_numpy()
     group = e[m].groupby("query_id", sort=False).size().to_numpy()
     return lgb.Dataset(f[m], e.esci_label[m].map(LABEL), group=group)
-
-
-def mean_ndcg(e, score, split):
-    """Our NDCG@10. LightGBM's own counts all-Irrelevant queries as 1.0, ours as 0."""
-    m = (e.split == split).to_numpy()
-    s = e[m].assign(score=score[m])
-    return np.mean([
-        ndcg(g.sort_values("score", ascending=False, kind="stable").gain.tolist(), g.gain.tolist())
-        for _, g in s.groupby("query_id")
-    ])
 
 
 def train():
