@@ -22,6 +22,17 @@ def recall(retrieved, relevant, k):
     return len(set(retrieved[:k]) & set(relevant)) / len(relevant)
 
 
+def mean_recall(e, retrieved, pos, k):
+    """e: labelled pairs. retrieved: query -> ranked product rows. pos: product_id -> row.
+    Queries with no Exact product are skipped."""
+    out = []
+    for q, g in e.groupby("query"):
+        exact = g.product_id[g.esci_label == "E"].map(pos).tolist()
+        if exact:
+            out.append(recall(list(retrieved[q]), exact, k))
+    return sum(out) / len(out)
+
+
 if __name__ == "__main__":
     assert ndcg([1, 0.1, 0], [0, 0.1, 1]) == 1.0
     assert ndcg([0, 0.1, 1], [0, 0.1, 1]) < 1.0
