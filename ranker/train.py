@@ -5,7 +5,7 @@ from pathlib import Path
 
 import lightgbm as lgb
 
-from ranker.data import load_examples, load_products
+from ranker.data import load_examples
 from ranker.features import build
 from ranker.metrics import GAIN, mean_ndcg
 
@@ -30,7 +30,7 @@ PARAMS = {
 def load():
     """Examples sorted by query, since LightGBM needs each query's rows together."""
     e = load_examples().sort_values("query_id", kind="stable").reset_index(drop=True)
-    return e, build(e, load_products())
+    return e, build(e)
 
 
 def dataset(e, f, split):
@@ -56,7 +56,8 @@ def evaluate(split):
     e, f = load()
     model = lgb.Booster(model_file=MODEL)
     print(f"{split} bm25 only ndcg@10={mean_ndcg(e, f.bm25.to_numpy(), split):.4f}")
-    print(f"{split} lgbm      ndcg@10={mean_ndcg(e, model.predict(f), split):.4f}")
+    # LightGBM matches features by position, so select them by the model's own names.
+    print(f"{split} lgbm      ndcg@10={mean_ndcg(e, model.predict(f[model.feature_name()]), split):.4f}")
     gain = model.feature_importance("gain")
     for name, g in sorted(zip(model.feature_name(), gain / gain.sum()), key=lambda x: -x[1]):
         print(f"  {name:16s} {g:.1%}")
