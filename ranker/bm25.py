@@ -1,6 +1,7 @@
 """BM25 over the product catalog. Baseline ranker and first retrieval source."""
 
 import sys
+from functools import cache
 from pathlib import Path
 
 import bm25s
@@ -37,11 +38,17 @@ def top_rows(s, k):
     return top[np.argsort(-s[top], kind="stable")]
 
 
+@cache
+def product_matrix(r):
+    """Products x terms BM25 weights, row-major so one product's terms are contiguous."""
+    s = r.scores
+    return csc_matrix((s["data"], s["indices"], s["indptr"]), shape=(s["num_docs"], len(s["indptr"]) - 1)).tocsr()
+
+
 def pair_scores(r, queries, rows):
     """BM25 score of product row rows[i] for queries[i], read straight from the
     index matrix. Much faster than scoring the whole catalog for each query."""
-    s = r.scores
-    m = csc_matrix((s["data"], s["indices"], s["indptr"]), shape=(s["num_docs"], len(s["indptr"]) - 1)).tocsr()
+    m = product_matrix(r)
     rows = np.asarray(rows)
     out = np.zeros(len(rows), dtype=np.float32)
     for q, idx in pd.Series(queries).groupby(queries).indices.items():
