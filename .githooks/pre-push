@@ -1,0 +1,33 @@
+#!/bin/sh
+# Push only as verma-divyanshu-git, and only commits made by Divyanshu.
+# Setup: git config core.hooksPath .githooks
+#        git remote set-url origin https://verma-divyanshu-git@github.com/verma-divyanshu-git/Two-Stage-Product-Search-Ranker.git
+USERNAME="verma-divyanshu-git"
+NAME="Divyanshu"
+EMAIL="bautocrats@gmail.com"
+ZERO="0000000000000000000000000000000000000000"
+
+remote="$1"
+url="$2"
+
+# The SSH key on this machine belongs to another account, and a global
+# insteadOf rewrites plain https://github.com/ to SSH. Pinning the username
+# in the URL skips that rewrite and makes gh hand out this account's token.
+case "$url" in
+    "https://$USERNAME@github.com/"*) ;;
+    *)
+        echo "pre-push: remote must be https://$USERNAME@github.com/..., got $url" >&2
+        exit 1
+        ;;
+esac
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+    [ "$local_sha" = "$ZERO" ] && continue
+    bad=$(git log --format='%H %an <%ae> | %cn <%ce>' "$local_sha" --not --remotes="$remote" |
+        grep -v " $NAME <$EMAIL> | $NAME <$EMAIL>$")
+    if [ -n "$bad" ]; then
+        echo "pre-push: commits not by '$NAME <$EMAIL>':" >&2
+        echo "$bad" >&2
+        exit 1
+    fi
+done
