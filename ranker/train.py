@@ -1,5 +1,6 @@
 """Train a LightGBM LambdaMART ranker on the labelled pairs."""
 
+import sys
 from pathlib import Path
 
 import lightgbm as lgb
@@ -62,5 +63,13 @@ def train():
     print(f"valid lgbm      ndcg@10={mean_ndcg(e, model.predict(f), 'valid'):.4f}")
 
 
+def evaluate(split):
+    e, f = load()
+    model = lgb.Booster(model_file=MODEL)
+    print(f"{split} bm25 only ndcg@10={mean_ndcg(e, f.bm25.to_numpy(), split):.4f}")
+    print(f"{split} lgbm      ndcg@10={mean_ndcg(e, model.predict(f), split):.4f}")
+
+
 if __name__ == "__main__":
-    train()
+    split = sys.argv[1] if len(sys.argv) > 1 else "train"
+    train() if split == "train" else evaluate(split)
