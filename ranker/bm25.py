@@ -5,7 +5,9 @@ from pathlib import Path
 
 import bm25s
 import numpy as np
+import pandas as pd
 import Stemmer
+from scipy.sparse import csc_matrix
 
 from ranker.data import load_examples, load_products
 from ranker.metrics import ndcg, recall
@@ -27,6 +29,21 @@ def scores(r, query):
     """BM25 score of every product. Queries like "it" or "$1" have no tokens left."""
     t = tokens(query)
     return r.get_scores(t) if t else np.zeros(r.scores["num_docs"], dtype=np.float32)
+
+
+def pair_scores(r, queries, rows):
+    """BM25 score of product row rows[i] for queries[i], read straight from the
+    index matrix. Much faster than scoring the whole catalog for each query."""
+    s = r.scores
+    m = csc_matrix((s["data"], s["indices"], s["indptr"]), shape=(s["num_docs"], len(s["indptr"]) - 1)).tocsr()
+    rows = np.asarray(rows)
+    out = np.zeros(len(rows), dtype=np.float32)
+    for q, idx in pd.Series(queries).groupby(queries).indices.items():
+        t = tokens(q)
+        ids = r.get_tokens_ids(t) if t else []
+        if ids:
+            out[idx] = m[rows[idx]][:, ids].sum(axis=1).A1
+    return out
 
 
 def load_index():
@@ -61,5 +78,16 @@ def evaluate(split, k=100):
     print(f"{split}: ndcg@10={np.mean(nd):.4f} recall@{k}(E)={np.mean(rc):.4f} queries={len(nd)}")
 
 
+def check():
+    r = load_index()
+    queries = ["80 cfm fan", "fan fan", "it", "zzqqxx usb cable"]
+    rows = np.arange(0, 400000, 1000)
+    for q in queries:
+        fast = pair_scores(r, np.array([q] * len(rows)), rows)
+        assert np.allclose(fast, scores(r, q)[rows], atol=1e-4), q
+    print("ok")
+
+
 if __name__ == "__main__":
-    evaluate(sys.argv[1] if len(sys.argv) > 1 else "valid")
+    arg = sys.argv[1] if len(sys.argv) > 1 else "valid"
+    check() if arg == "check" else evaluate(arg)
