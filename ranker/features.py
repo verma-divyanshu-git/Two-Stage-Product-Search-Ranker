@@ -8,6 +8,7 @@ import pandas as pd
 
 from ranker.bm25 import STEM, load_index, pair_scores
 from ranker.data import load_examples, load_products
+from ranker.dense import encode, load_model, product_embeddings
 
 NUM = re.compile(r"\d+(?:\.\d+)?")
 
@@ -38,6 +39,8 @@ def build(e, p):
     qt = [q_tok[q] for q in queries]
     f = pd.DataFrame(index=e.index)
     f["bm25"] = pair_scores(load_index(), queries, rows)
+    qv = dict(zip(uq, encode(load_model(), list(uq))))
+    f["cosine"] = np.einsum("ij,ij->i", np.stack([qv[q] for q in queries]), product_embeddings()[rows])
     f["q_len"] = [len(t) for t in qt]
     f["title_len"] = [len(t) for t in title]
     f["title_overlap"] = [overlap(q, t) for q, t in zip(qt, title)]
