@@ -4,11 +4,14 @@ version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = [
     "bm25s>=0.3.16",
+    "fastapi>=0.162.1",
     "hnswlib>=0.8.0",
+    "httpx>=0.28.1",
     "lightgbm>=4.7.0",
     "pandas>=3.1.1",
     "pyarrow>=26.0.1",
     "pystemmer>=3.1.0",
     "scipy>=1.18.1",
     "sentence-transformers>=6.2.0",
+    "uvicorn>=0.54.0",
 ]
