@@ -19,7 +19,11 @@ def load_examples():
     e = e[["query_id", "query", "product_id", "esci_label", "split"]].reset_index(drop=True)
     e["gain"] = e.esci_label.map(GAIN)
     # Split by query, never by row, so a query never sits in two splits.
-    e.loc[(e.split == "train") & (e.query_id % 10 == 0), "split"] = "valid"
+    # ce_train fine-tunes the cross-encoder. LightGBM trains on the rest, so the
+    # cross-encoder feature it learns from is never scored on its own training data.
+    tail = e.query_id % 10
+    e.loc[(e.split == "train") & (tail == 0), "split"] = "valid"
+    e.loc[(e.split == "train") & tail.between(1, 4), "split"] = "ce_train"
     return e
 
 
