@@ -1,0 +1,21 @@
+ranker/retrieve.py
+  s_063379ee7f4903::t_9875f925154fc5 17-23
+ranker/pipeline.py
+  s_063379ee7f4903::t_ca67e9561f271e 1-68
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6e20f1e5343fdc2aeefaddd05c97967a7bbe5504",
+  "prompts": {},
+  "sessions": {
+    "s_063379ee7f4903": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "aaf39566-a2e0-461d-bfbd-9009c20211a5",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Divyanshu <bautocrats@gmail.com>"
+    }
+  }
+}
