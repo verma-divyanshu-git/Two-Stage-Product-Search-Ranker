@@ -2,6 +2,7 @@
 
 from pathlib import Path
 
+import faiss
 import numpy as np
 import torch
 from sentence_transformers import SentenceTransformer
@@ -38,8 +39,18 @@ def product_embeddings():
     return v
 
 
+def flat_index(v):
+    """Exact search: compares the query with every product."""
+    index = faiss.IndexFlatIP(v.shape[1])
+    index.add(v)
+    return index
+
+
 if __name__ == "__main__":
     v = product_embeddings()
     print(v.shape, v.dtype)
     assert v.shape == (len(load_products()), 384)
     assert np.allclose(np.linalg.norm(v[:1000], axis=1), 1, atol=1e-3)
+    _, rows = flat_index(v).search(v[:100], 1)
+    assert (rows[:, 0] == np.arange(100)).mean() > 0.9, "a product should find itself"
+    print("ok")
