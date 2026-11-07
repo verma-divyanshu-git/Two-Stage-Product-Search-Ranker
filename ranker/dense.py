@@ -1,9 +1,9 @@
 """Bi-encoder embeddings: queries and products become vectors, similar meaning means close vectors."""
 
 import sys
+from functools import partial
 from pathlib import Path
 
-import faiss
 import numpy as np
 import torch
 from sentence_transformers import SentenceTransformer
@@ -41,24 +41,30 @@ def product_embeddings():
     return v
 
 
-def flat_index(v):
-    """Exact search: compares the query with every product."""
-    index = faiss.IndexFlatIP(v.shape[1])
-    index.add(v)
-    return index
+def exact_knn(v, qv, k, chunk=512):
+    """Top k product rows per query vector, best first, by comparing with every product.
+    NumPy instead of FAISS: faiss-cpu and torch each ship their own libomp, and
+    running both in one process aborts or silently breaks threading on macOS."""
+    out = []
+    for i in range(0, len(qv), chunk):
+        s = qv[i:i + chunk] @ v.T
+        top = np.argpartition(-s, k, axis=1)[:, :k]
+        order = np.argsort(-np.take_along_axis(s, top, axis=1), axis=1)
+        out.append(np.take_along_axis(top, order, axis=1))
+    return np.vstack(out)
 
 
-def search(index, model, queries, k):
-    """query -> top k product rows, best first."""
-    _, rows = index.search(encode(model, list(queries)), k)
-    return dict(zip(queries, rows))
+def search(knn, model, queries, k):
+    """query -> top k product rows, best first. knn(query_vectors, k) does the lookup."""
+    return dict(zip(queries, knn(encode(model, list(queries)), k)))
 
 
 def evaluate(split, k=100):
     e = load_examples()
     e = e[e.split == split]
     pos = {pid: i for i, pid in enumerate(load_products().product_id)}
-    hits = search(flat_index(product_embeddings()), load_model(), e["query"].unique(), k)
+    v = product_embeddings()
+    hits = search(partial(exact_knn, v), load_model(), e["query"].unique(), k)
     print(f"{split}: dense recall@{k}(E)={mean_recall(e, hits, pos, k):.4f}")
 
 
@@ -67,8 +73,10 @@ def check():
     print(v.shape, v.dtype)
     assert v.shape == (len(load_products()), 384)
     assert np.allclose(np.linalg.norm(v[:1000], axis=1), 1, atol=1e-3)
-    _, rows = flat_index(v).search(v[:100], 1)
+    rows = exact_knn(v, v[:100], 5)
     assert (rows[:, 0] == np.arange(100)).mean() > 0.9, "a product should find itself"
+    s = v[:100] @ v.T
+    assert (np.diff(np.take_along_axis(s, rows, axis=1), axis=1) <= 1e-6).all(), "best first"
     print("ok")
 
 
