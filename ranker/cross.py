@@ -10,7 +10,7 @@ import torch
 from sentence_transformers import CrossEncoder
 
 from ranker.data import load_examples, load_products
-from ranker.metrics import mean_ndcg
+from ranker.metrics import ndcg_both
 
 ZERO_SHOT = "cross-encoder/ms-marco-MiniLM-L6-v2"
 FINETUNED = "artifacts/ce-esci"
@@ -52,4 +52,4 @@ if __name__ == "__main__":
     s = scores_for(e, name)
     assert len(s) == len(e) and not np.isnan(s).any()
     for split in ("valid", "test"):
-        print(f"{split} {Path(name).name} alone ndcg@10={mean_ndcg(e, s, split):.4f}")
+        print(f"{split} {Path(name).name} alone {ndcg_both(e, s, split)}")

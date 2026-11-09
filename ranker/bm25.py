@@ -70,23 +70,24 @@ def load_index():
 
 
 def evaluate(split, k=100):
-    """NDCG@10 when BM25 reranks the labelled products, and recall@k of
+    """NDCG@10 and full-list NDCG when BM25 reranks the labelled products, and recall@k of
     Exact products when BM25 retrieves from the whole catalog."""
     e = load_examples()
     e = e[e.split == split]
     pos = {pid: i for i, pid in enumerate(load_products().product_id)}
     r = load_index()
-    nd, rc = [], []
+    nd, full, rc = [], [], []
     e = e.assign(row=e.product_id.map(pos))
     for q, g in e.groupby("query"):
         s = scores(r, q)
         idx = g.row.to_numpy()
-        order = np.argsort(-s[idx], kind="stable")
-        nd.append(ndcg(g.gain.to_numpy()[order].tolist(), g.gain.tolist()))
+        ranked = g.gain.to_numpy()[np.argsort(-s[idx], kind="stable")].tolist()
+        nd.append(ndcg(ranked, g.gain.tolist()))
+        full.append(ndcg(ranked, g.gain.tolist(), None))
         exact = idx[g.esci_label.to_numpy() == "E"]
         if len(exact):
             rc.append(recall(top_rows(s, k).tolist(), exact.tolist(), k))
-    print(f"{split}: ndcg@10={np.mean(nd):.4f} recall@{k}(E)={np.mean(rc):.4f} queries={len(nd)}")
+    print(f"{split}: ndcg@10={np.mean(nd):.4f} ndcg={np.mean(full):.4f} recall@{k}(E)={np.mean(rc):.4f} queries={len(nd)}")
 
 
 def check():

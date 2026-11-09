@@ -34,6 +34,11 @@ def mean_ndcg(e, score, split, k=10):
     return sum(out) / len(out)
 
 
+def ndcg_both(e, score, split):
+    """NDCG@10, and NDCG over each query's whole list, which is what the KDD Cup leaderboard scored."""
+    return f"ndcg@10={mean_ndcg(e, score, split):.4f} ndcg={mean_ndcg(e, score, split, None):.4f}"
+
+
 def mean_recall(e, retrieved, pos, k):
     """e: labelled pairs. retrieved: query -> ranked product rows. pos: product_id -> row.
     Queries with no Exact product are skipped."""
@@ -47,6 +52,8 @@ if __name__ == "__main__":
     assert ndcg([0, 0.1, 1], [0, 0.1, 1]) < 1.0
     assert ndcg([0, 0], [0, 0]) == 0.0
     assert abs(ndcg([0, 1], [1, 0]) - 1 / math.log2(3)) < 1e-9
+    assert ndcg([0] * 10 + [1], [1] + [0] * 10) == 0.0
+    assert ndcg([0] * 10 + [1], [1] + [0] * 10, None) > 0.0
     assert recall(["a", "b", "c"], ["c", "d"], 2) == 0.0
     assert recall(["a", "b", "c"], ["c", "d"], 3) == 0.5
     print("ok")

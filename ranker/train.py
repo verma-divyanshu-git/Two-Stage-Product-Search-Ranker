@@ -7,7 +7,7 @@ import lightgbm as lgb
 
 from ranker.data import load_examples
 from ranker.features import build
-from ranker.metrics import GAIN, mean_ndcg
+from ranker.metrics import GAIN, ndcg_both
 
 # light skips the cross-encoder, so serving can afford it on every retrieved candidate.
 # full adds it and only reranks light's top few. Feature importance is printed for full.
@@ -50,16 +50,16 @@ def train():
             valid_sets=[dataset(e, f[cols], "valid")], callbacks=[lgb.early_stopping(100, verbose=False)],
         )
         model.save_model(path, num_iteration=model.best_iteration)
-        print(f"valid {name} ndcg@10={mean_ndcg(e, model.predict(f[cols]), 'valid'):.4f}")
+        print(f"valid {name} {ndcg_both(e, model.predict(f[cols]), 'valid')}")
 
 
 def evaluate(split):
     e, f = load()
-    print(f"{split} bm25 only ndcg@10={mean_ndcg(e, f.bm25.to_numpy(), split):.4f}")
+    print(f"{split} bm25 only {ndcg_both(e, f.bm25.to_numpy(), split)}")
     for name, path in MODELS.items():
         model = lgb.Booster(model_file=path)
         # LightGBM matches features by position, so select them by the model's own names.
-        print(f"{split} {name} ndcg@10={mean_ndcg(e, model.predict(f[model.feature_name()]), split):.4f}")
+        print(f"{split} {name} {ndcg_both(e, model.predict(f[model.feature_name()]), split)}")
     gain = model.feature_importance("gain")
     for name, g in sorted(zip(model.feature_name(), gain / gain.sum()), key=lambda x: -x[1]):
         print(f"  {name:16s} {g:.1%}")
