@@ -41,19 +41,15 @@ def svg(w, h, body):
 
 
 def split_diagram():
-    b = box(0, 30, 140, 46, "small version\nUS train, 20.9k q", "#fff")
-    b += box(0, 156, 140, 46, "large version only\nUS train, 54k q", "#fff")
-    b += box(0, 216, 140, 34, "official test, 9k q", "#fff", ORANGE)
-    rows = [("train 50%", "LightGBM", 0), ("ce_train 40%", "teacher, student", 52), ("valid 10%", "early stopping", 104)]
+    b = box(0, 34, 140, 46, "official train\n20.9k queries", "#fff")
+    b += box(0, 156, 140, 34, "official test, 9k q", "#fff", ORANGE)
+    rows = [("train 50%", "LightGBM", 0), ("ce_train 40%", "cross-encoder", 52), ("valid 10%", "early stopping", 104)]
     for name, use, y in rows:
-        b += arrow(140, 53, 196, y + 17)
+        b += arrow(140, 57, 196, y + 17)
         b += box(200, y, 120, 34, name) + f'<text x="330" y="{y + 21}" font-size="12.5" fill="{GREY}">{use}</text>'
-    b += arrow(140, 173, 196, 173) + box(200, 156, 120, 34, "extra")
-    b += f'<text x="330" y="168" font-size="12.5" fill="{GREY}">teacher, student</text>'
-    b += f'<text x="330" y="184" font-size="11" fill="{GREY}">7 duplicate queries dropped</text>'
-    b += arrow(140, 233, 196, 233) + box(200, 216, 120, 34, "test", "#fdf0e6", ORANGE)
-    b += f'<text x="330" y="237" font-size="12.5" fill="{GREY}">scored once, at the end</text>'
-    return svg(490, 252, b)
+    b += arrow(140, 173, 196, 173) + box(200, 156, 120, 34, "test", "#fdf0e6", ORANGE)
+    b += f'<text x="330" y="177" font-size="12.5" fill="{GREY}">scored once, at the end</text>'
+    return svg(490, 192, b)
 
 
 def system_diagram():
@@ -62,7 +58,7 @@ def system_diagram():
         ("BM25 top 200  +  bi-encoder HNSW top 200", "stage 1: retrieve", False),
         ("reciprocal rank fusion: 200 candidates", "", False),
         ("light LightGBM, 10 cheap features", "stage 2: rank", False),
-        ("distilled cross-encoder on top 50", "", False),
+        ("fine-tuned cross-encoder on top 50", "", False),
         ("full LightGBM, adds cross-encoder score", "", False),
         ("top 10", "", True),
     ]
@@ -77,15 +73,15 @@ def system_diagram():
     return svg(490, y - 16, b)
 
 
-def distill_diagram():
-    b = box(0, 0, 200, 54, "Teacher\nDeBERTa-v3-large, 435M", "#fdf0e6", ORANGE, 13, True)
-    b += box(0, 120, 200, 54, "Student\nMiniLM-L12, 33M", LIGHT, BLUE, 13, True)
-    b += box(260, 0, 220, 54, "P(I), P(C), P(S), P(E)\nfor every training pair")
-    b += box(260, 120, 220, 54, "loss = 0.7 CE(hard label)\n+ 0.3 CE(teacher probs)")
-    b += arrow(200, 27, 256, 27) + arrow(370, 54, 370, 116) + arrow(260, 147, 204, 147)
-    b += f'<text x="0" y="200" font-size="12" fill="{GREY}">input: query [SEP] color brand title bullets description, 128 tokens</text>'
-    b += f'<text x="0" y="218" font-size="12" fill="{GREY}">score = P(E) + 0.1 P(S) + 0.01 P(C), the expected gain</text>'
-    return svg(480, 226, b)
+def cross_diagram():
+    b = box(0, 0, 150, 40, "[CLS] query [SEP]\nproduct title [SEP]", "#fff")
+    b += box(190, 0, 150, 40, "MiniLM-L6, 22M\n6 layers, 64 tokens", "#fdf0e6", ORANGE, 13, True)
+    b += box(380, 0, 110, 40, "relevance\nlogit")
+    b += arrow(150, 20, 186, 20) + arrow(340, 20, 376, 20)
+    b += box(190, 76, 150, 40, "target = ESCI gain\n1, 0.1, 0.01 or 0")
+    b += box(380, 76, 110, 40, "BCE with\nlogits")
+    b += arrow(435, 40, 435, 72) + arrow(340, 96, 376, 96)
+    return svg(490, 118, b)
 
 
 def ladder_chart(rows, lines):
@@ -100,7 +96,7 @@ def ladder_chart(rows, lines):
         b += f'<text x="{l - 6}" y="{y(v) + 4}" font-size="11" text-anchor="end" fill="{GREY}">{v:.1f}</text>'
     for ref in lines:
         b += f'<line x1="{l}" x2="{w}" y1="{y(ref["value"])}" y2="{y(ref["value"])}" stroke="{GREY}" stroke-dasharray="4 4"/>'
-        b += f'<text x="{l + 4}" y="{y(ref["value"]) + 14}" font-size="11" fill="{GREY}">{escape(ref["label"])}</text>'
+        b += f'<text x="{w - 4}" y="{y(ref["value"]) + 14}" font-size="11" text-anchor="end" fill="{GREY}">{escape(ref["label"])}</text>'
     for key, color in (("ndcg", NAVY), ("ndcg10", ORANGE)):
         pts = [(x(i), y(row[key]), row[key]) for i, row in enumerate(rows) if row.get(key) is not None]
         b += f'<polyline points="{" ".join(f"{a},{c}" for a, c, _ in pts)}" fill="none" stroke="{color}" stroke-width="2.2"/>'
@@ -114,7 +110,7 @@ def ladder_chart(rows, lines):
     return svg(w, h, b)
 
 
-def bars(rows, keys, unit="", hi=None):
+def bars(rows, keys, unit="", hi=None, fmt="{:.3f}"):
     w, label_w, bh, gap = 490, 150, 13, 12
     hi = hi or max(row[k] for row in rows for k, _ in keys)
     b, y = "", 0
@@ -123,7 +119,7 @@ def bars(rows, keys, unit="", hi=None):
         for j, (k, color) in enumerate(keys):
             bw = row[k] / hi * (w - label_w - 60)
             b += f'<rect x="{label_w}" y="{y + j * bh}" width="{bw}" height="{bh - 2}" fill="{color}"/>'
-            b += f'<text x="{label_w + bw + 4}" y="{y + j * bh + 10}" font-size="11">{row[k]:g}{unit}</text>'
+            b += f'<text x="{label_w + bw + 4}" y="{y + j * bh + 10}" font-size="11">{fmt.format(row[k])}{unit}</text>'
         y += bh * len(keys) + gap
     return svg(w, y, b)
 
@@ -162,7 +158,7 @@ th {{ color: {GREY}; font-weight: 600 }}
 .math {{ font-family: Georgia, serif; font-size: 15px; background: #fafafa; padding: 6px 10px; border-left: 3px solid {BLUE} }}
 </style></head><body>
 <header><h1>Two-Stage Product Search Ranker</h1>
-<div class="sub">Hybrid retrieval, a LightGBM cascade and a distilled cross-encoder on the Shopping Queries (ESCI) dataset</div></header>
+<div class="sub">Hybrid retrieval, a LightGBM cascade and a fine-tuned cross-encoder on the Shopping Queries (ESCI) dataset</div></header>
 <main>
 <div>
 <section><h2>Problem</h2>
@@ -179,17 +175,25 @@ th {{ color: {GREY}; font-weight: 600 }}
 <p><b>Full-list NDCG</b> scores each query's whole labelled list, the KDD Cup leaderboard metric. <b>NDCG@10</b> looks only at what a shopper sees and is much stricter.</p>
 <p><b>Recall@k</b> is the share of Exact products that retrieval finds in its top k of the whole catalog.</p>
 </section>
+<section><h2>Latency, {r["bench_queries"]} replayed queries</h2>
+<div>{legend([("p50", BLUE), ("p95", ORANGE)])}</div>
+{bars(r["latency_bars"], [("p50", BLUE), ("p95", ORANGE)], " ms", fmt="{:g}")}
+</section>
 </div>
 <div>
 <section><h2>System</h2>{system_diagram()}</section>
-<section><h2>Teacher to student distillation</h2>
-<p>A large teacher is too slow to serve, so it trains offline on 1.1M pairs and a small student learns from its probabilities.</p>
-{distill_diagram()}
+<section><h2>Fine-tuning the cross-encoder</h2>
+<p>An MS MARCO cross-encoder reads query and title together. One epoch on 8.3k ce_train queries, about 5 minutes on a laptop GPU, teaches it ESCI's notion of a match.</p>
+{cross_diagram()}
+<div>{legend([("NDCG@10", ORANGE), ("full-list NDCG", NAVY)])}</div>
+{bars(r["cross"], [("ndcg10", ORANGE), ("ndcg", NAVY)], hi=1.0)}
 </section>
-<section><h2>Latency, {r["bench_queries"]} replayed queries</h2>
-<div>{legend([("p50", BLUE), ("p95", ORANGE)])}</div>
-{bars(r["latency_bars"], [("p50", BLUE), ("p95", ORANGE)], " ms")}
+<section><h2>End to end over the whole catalog</h2>
+<p>Each test query searches all 482k products and the top 10 is scored. Products nobody labelled count as 0, so this is a lower bound.</p>
+<div>{legend([("NDCG@10", ORANGE)])}</div>
+{bars(r["end_to_end"], [("ndcg10", ORANGE)], hi=0.5)}
 </section>
+
 </div>
 <div>
 <section><h2>Results on the official test split</h2>
@@ -200,6 +204,11 @@ th {{ color: {GREY}; font-weight: 600 }}
 <section><h2>Retrieval recall of Exact products</h2>
 <div>{legend([("recall@100", BLUE), ("recall@200", ORANGE)])}</div>
 {bars(r["recall"], [("r100", BLUE), ("r200", ORANGE)], hi=1.0)}
+</section>
+<section><h2>Drift: watch the output too</h2>
+<p>PSI against a reference, on query length (input) and the top result's score (output). Above 0.25 means drift.</p>
+<div>{legend([("query length", BLUE), ("top score", ORANGE)])}</div>
+{bars(r["drift"], [("q_len", BLUE), ("top_score", ORANGE)])}
 </section>
 <section><h2>Takeaways</h2><ul>{takeaways}</ul></section>
 </div>

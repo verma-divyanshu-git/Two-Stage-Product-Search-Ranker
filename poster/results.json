@@ -56,7 +56,7 @@
       "ndcg": 0.844
     },
     {
-      "step": "+ MiniLM-L6\ncross-encoder",
+      "step": "+ fine-tuned\ncross-encoder",
       "ndcg10": 0.759,
       "ndcg": 0.858
     }
@@ -126,6 +126,49 @@
     "Hybrid retrieval finds 5 points more Exact products than BM25 alone, because lexical and dense search miss different products.",
     "Lexical features stall at 0.725 NDCG@10. Telling Exact from Substitute needs a model that reads both texts together.",
     "The cascade spends the cross-encoder only on the 50 candidates the cheap ranker likes best.",
-    "Monitoring only the input missed Spanish traffic. The top score's PSI jumped to 1.09 while query length stayed under 0.1."
+    "Fine-tuning moved NDCG@10 more than any feature, and its score takes 68% of the full ranker's gain importance."
+  ],
+  "cross": [
+    {
+      "name": "zero-shot, alone",
+      "ndcg10": 0.719,
+      "ndcg": 0.836
+    },
+    {
+      "name": "fine-tuned, alone",
+      "ndcg10": 0.75,
+      "ndcg": 0.853
+    },
+    {
+      "name": "in full LightGBM",
+      "ndcg10": 0.759,
+      "ndcg": 0.858
+    }
+  ],
+  "drift": [
+    {
+      "name": "replayed test queries",
+      "q_len": 0.001,
+      "top_score": 0.059
+    },
+    {
+      "name": "Spanish queries",
+      "q_len": 0.093,
+      "top_score": 1.086
+    }
+  ],
+  "end_to_end": [
+    {
+      "name": "BM25 top 10",
+      "ndcg10": 0.317
+    },
+    {
+      "name": "hybrid RRF top 10",
+      "ndcg10": 0.329
+    },
+    {
+      "name": "full pipeline",
+      "ndcg10": 0.372
+    }
   ]
 }
