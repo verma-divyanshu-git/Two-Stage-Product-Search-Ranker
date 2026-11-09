@@ -38,6 +38,7 @@ uv run python -m ranker.pipeline test    # end-to-end NDCG over the whole catalo
 uv run uvicorn ranker.api:app            # GET /search?q=...&k=10
 uv run python -m ranker.bench            # latency, replaying test queries through the API
 uv run python -m ranker.drift            # PSI drift check over logs/requests.jsonl
+uv run python poster/build.py            # poster.html, poster.pdf and poster.png from poster/results.json
 ```
 
 If Hugging Face downloads stall, set `HF_HUB_DISABLE_XET=1`.
@@ -92,6 +93,25 @@ The fine-tuned cross-encoder moved it most, and takes 68% of the full model's ga
 
 The cross-encoder is fine-tuned for one epoch on 8.3k ce_train queries, with the ESCI gain as a soft BCE target, in about 5 minutes on Apple MPS.
 Holding those queries out costs LightGBM 0.003, and fine-tuning pays it back many times over.
+
+### Full-list NDCG
+
+The KDD Cup leaderboard scored NDCG over each query's whole labelled list, not the top 10.
+That metric is much kinder, since even random order gets 0.747 on test.
+Amazon's official baseline scored 0.83 on it.
+
+| Model | Valid NDCG | Test NDCG |
+|---|---|---|
+| Random order | - | 0.747 |
+| BM25 | 0.823 | 0.825 |
+| Zero-shot cross-encoder alone | 0.834 | 0.836 |
+| Fine-tuned cross-encoder alone | 0.853 | 0.853 |
+| Light LightGBM | 0.842 | 0.844 |
+| Full LightGBM | 0.860 | 0.858 |
+
+The competition's winner reached 0.904 with an ensemble of large multilingual cross-encoders such as DeBERTa-v3-large.
+That ensemble can't answer in 100 ms.
+One epoch of DeBERTa-v3-large over 1.1M pairs ran at about 19 hours on Kaggle's free pair of T4s, so this project stops at MiniLM.
 
 ## End to end
 
