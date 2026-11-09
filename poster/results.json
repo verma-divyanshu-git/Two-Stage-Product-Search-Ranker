@@ -1,0 +1,131 @@
+{
+  "labels": [
+    [
+      "E",
+      "Exact: the product matches the query",
+      "1.0",
+      "43.5%"
+    ],
+    [
+      "S",
+      "Substitute: close, but some detail differs",
+      "0.1",
+      "35.1%"
+    ],
+    [
+      "C",
+      "Complement: goes with what was asked for",
+      "0.01",
+      "4.5%"
+    ],
+    [
+      "I",
+      "Irrelevant",
+      "0",
+      "16.9%"
+    ]
+  ],
+  "headline": [
+    {
+      "value": "0.858",
+      "label": "full-list NDCG"
+    },
+    {
+      "value": "0.759",
+      "label": "NDCG@10"
+    },
+    {
+      "value": "45 ms",
+      "label": "p50 end to end"
+    }
+  ],
+  "ladder": [
+    {
+      "step": "random\norder",
+      "ndcg10": 0.578,
+      "ndcg": 0.747
+    },
+    {
+      "step": "BM25",
+      "ndcg10": 0.703,
+      "ndcg": 0.825
+    },
+    {
+      "step": "LightGBM\n+ cosine",
+      "ndcg10": 0.734,
+      "ndcg": 0.844
+    },
+    {
+      "step": "+ MiniLM-L6\ncross-encoder",
+      "ndcg10": 0.759,
+      "ndcg": 0.858
+    }
+  ],
+  "reference_lines": [
+    {
+      "value": 0.83,
+      "label": "official baseline, full-list"
+    }
+  ],
+  "recall": [
+    {
+      "name": "BM25",
+      "r100": 0.578,
+      "r200": 0.652
+    },
+    {
+      "name": "bi-encoder + HNSW",
+      "r100": 0.518,
+      "r200": 0.598
+    },
+    {
+      "name": "hybrid RRF",
+      "r100": 0.628,
+      "r200": 0.697
+    }
+  ],
+  "bench_queries": 500,
+  "latency_bars": [
+    {
+      "name": "encode query",
+      "p50": 4.7,
+      "p95": 5.3
+    },
+    {
+      "name": "retrieve 200",
+      "p50": 3.0,
+      "p95": 4.8
+    },
+    {
+      "name": "features for 200",
+      "p50": 14.7,
+      "p95": 18.2
+    },
+    {
+      "name": "light ranker",
+      "p50": 0.6,
+      "p95": 0.7
+    },
+    {
+      "name": "cross-encoder, top 50",
+      "p50": 19.2,
+      "p95": 22.2
+    },
+    {
+      "name": "full ranker",
+      "p50": 0.6,
+      "p95": 0.8
+    },
+    {
+      "name": "total with HTTP",
+      "p50": 44.7,
+      "p95": 49.9
+    }
+  ],
+  "takeaways": [
+    "Hybrid retrieval finds 5 points more Exact products than BM25 alone, because lexical and dense search miss different products.",
+    "Lexical features stall at 0.725 NDCG@10. Telling Exact from Substitute needs a model that reads both texts together.",
+    "The cascade spends the cross-encoder only on the 50 candidates the cheap ranker likes best.",
+    "Monitoring only the input missed Spanish traffic. The top score's PSI jumped to 1.09 while query length stayed under 0.1."
+  ]
+}
