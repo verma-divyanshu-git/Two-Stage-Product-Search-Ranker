@@ -38,7 +38,7 @@ uv run python -m ranker.pipeline test    # end-to-end NDCG over the whole catalo
 uv run uvicorn ranker.api:app            # GET /search?q=...&k=10
 uv run python -m ranker.bench            # latency, replaying test queries through the API
 uv run python -m ranker.drift            # PSI drift check over logs/requests.jsonl
-uv run python poster/build.py            # poster.html, poster.pdf and poster.png from poster/results.json
+tectonic poster/poster.tex               # one-page poster, written to poster/poster.pdf
 ```
 
 If Hugging Face downloads stall, set `HF_HUB_DISABLE_XET=1`.
